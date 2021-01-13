@@ -7,11 +7,7 @@ class Minesweeper():
     Minesweeper game representation
     """
 
-<<<<<<< HEAD
     def __init__(self, height=5, width=5, mines=3):
-=======
-    def __init__(self, height=8, width=8, mines=8):
->>>>>>> fe6e1b5a4e1d84b518f0d70a83aaa9f89db2aaa0
 
         # Set initial width, height, and number of mines
         self.height = height
@@ -109,37 +105,29 @@ class Sentence():
         """
         Returns the set of all cells in self.cells known to be mines.
         """
-<<<<<<< HEAD
         # Count == # of cells: all are mines
         if self.count == len(self.cells):
             return self.cells
         else: 
             return False
-=======
-        raise NotImplementedError
->>>>>>> fe6e1b5a4e1d84b518f0d70a83aaa9f89db2aaa0
+
 
     def known_safes(self):
         """
         Returns the set of all cells in self.cells known to be safe.
         """
-<<<<<<< HEAD
         # If count == 0: no mines
         if self.count == 0:
             return self.cells
         else:
             return False
-        
-=======
-        raise NotImplementedError
 
->>>>>>> fe6e1b5a4e1d84b518f0d70a83aaa9f89db2aaa0
+        
     def mark_mine(self, cell):
         """
         Updates internal knowledge representation given the fact that
         a cell is known to be a mine.
         """
-<<<<<<< HEAD
         # If cell not in self.cells, do nothing
         if cell not in self.cells:
             pass
@@ -149,24 +137,16 @@ class Sentence():
         self.cells.remove(cell)
         self.count -= 1
         
-=======
-        raise NotImplementedError
-
->>>>>>> fe6e1b5a4e1d84b518f0d70a83aaa9f89db2aaa0
     def mark_safe(self, cell):
         """
         Updates internal knowledge representation given the fact that
         a cell is known to be safe.
         """
-<<<<<<< HEAD
         if cell not in self.cells:
             pass
         
         self.cells.remove(cell)
         
-=======
-        raise NotImplementedError
->>>>>>> fe6e1b5a4e1d84b518f0d70a83aaa9f89db2aaa0
 
 
 class MinesweeperAI():
@@ -198,6 +178,7 @@ class MinesweeperAI():
         self.mines.add(cell)
         for sentence in self.knowledge:
             sentence.mark_mine(cell)
+            print(f"{cell} MINE!")
 
     def mark_safe(self, cell):
         """
@@ -207,6 +188,7 @@ class MinesweeperAI():
         self.safes.add(cell)
         for sentence in self.knowledge:
             sentence.mark_safe(cell)
+            print(f"{cell} safe")
 
     def add_knowledge(self, cell, count):
         """
@@ -223,7 +205,6 @@ class MinesweeperAI():
             5) add any new sentences to the AI's knowledge base
                if they can be inferred from existing knowledge
         """
-<<<<<<< HEAD
         # 1
         self.moves_made.add(cell)
 
@@ -237,6 +218,7 @@ class MinesweeperAI():
         # Get all undertermined cells
         steps = [-1, 0, 1]
         undetermined_cells = []
+        mine_count = 0
         for stepi in steps:
             if i + stepi not in range(self.height):
                 continue
@@ -246,13 +228,20 @@ class MinesweeperAI():
                 if stepi == 0 and stepj == 0:
                     pass
                 step = (i + stepi, j + stepj)
-                # Step not in mines or safes i.e. undertermined cells: add to cells 
-                if step in (self.mines or self.safes):
+                
+                #step is in moves_made
+                if step in self.moves_made:
+                    # Step is a mine cell, increase mine_count by 1, then skip
+                    if step in self.mines:
+                        mine_count += 1
                     continue
+
+                # Append undetermined_cells, meet none of above conditions
                 undetermined_cells.append(step)
         
+        remaining_mines = count - mine_count
         # Add sentence into KB
-        self.knowledge.append(Sentence(cells = undetermined_cells, count = count))
+        self.knowledge.append(Sentence(cells = undetermined_cells, count = remaining_mines))
 
         # 4
         # Make inference using new added sentence until no new sentence created
@@ -264,92 +253,35 @@ class MinesweeperAI():
 
             # Clean up KB by removing known mine cells and safe cells
             self.prune()
+            subset = self.get_subset()
 
-            # Remove first sentence from KB
-            try:
-                first = self.knowledge.pop(0)
-            except IndexError:
-                continue
-
-            new_knowledge = []
-            # Try to infer from frist sentence and the rest sentences
-            for current in self.knowledge:
-                # new is subset of first
-                if current.cells.issubset(first):
-                    new_cells = first.cells - current.cells
-                    new_count = first.count - current.count
-                elif first.cells.issubset(current):
-                    new_cells = current.cells - first.cells
-                    new_count = current.count - first.count
-                else:
+            for s1, s2 in subset:
+                # s1 and s2 contains no common cell, continue next
+                if s1.cells.isdisjoint(s2.cells):
                     continue
-                # Create new sentence and add into new KB
-                new_knowledge.append(Sentence(cells = new_cells, count = new_count))
-                # Update flag due to new sentence created
-                flag = True
-                # Update KB
-            self.knowledge += new_knowledge
+
+                # # if s1 and s2 has intersects, and s1 s2 counts are the same, and the size of intersection is the same as count: intersects are mines
+                # common_cells = s1.cells.intersection(s2.cells)
+                # if common_cells and s1.count == s2.count and len(common_cells) == s1.count:
+                #     self.knowledge.append(Sentence(cells = common_cells, count = s1.count))
+                #     safe_cells = s1.cells.union(s2.cells) - common_cells
+                #     self.knowledge.append(Sentence(cells = safe_cells, count = 0))
+                #     flag = True
+                #     continue
                 
-
-        # 4 Update KB
-        # Inite update flag for while loop
-        # update = True
-        # while update:
-        #     # Set update False until there is a inference
-        #     update = False
-
-        #     try: 
-        #         # get the first sentence from knowledge
-        #         first = self.knowledge.pop(0)
-        #         print(f"first: {first}")
-        #     except IndexError:
-        #         break
-
-        #     # Check first sentence has all mines
-        #     if first.known_mines():
-        #         mine_cells = first.known_mines()
-        #         for cell in mine_cells:
-        #             self.mark_mine(cell)
-        #             update = True
-        #             continue
-
-        #     # Check new sentence has no mine
-        #     if first.known_safes():
-        #         safe_cells = first.known_safes()
-        #         for cell in safe_cells:
-        #             self.mark_safe(cell)
-        #             update = True
-        #             continue
-
-        #     # Compare new sentence one by one with sentences from KB
-        #     new_knowledge = []
-        #     for sentence in self.knowledge:
-        #         print(f"sentence: {sentence}")
-        #         if first.issubset(sentence):
-        #             print("FIRST is sub of sentence")
-        #             update = True
-        #             new_cells = sentence.cells - first.sells
-        #             new_count = sentence.count - first.count
-        #             new_knowledge.append(Sentence(cells = new_cells, count = new_count))
-        #         elif sentence.issubset(first):
-        #             print("sentence is sub of FIRST")
-        #             update = True
-        #             new_cells = first.cells - sentence.cells
-        #             new_count = first.count - sentence.count
-        #             new_knowledge.append(Sentence(cells = new_cells, count = new_count))
-        #         else:
-        #             print("Not a subset")
-        #             pass
-            
-        #     # Update knowledge by adding new knowledge in if not empty
-        #     if new_knowledge: 
-        #         self.knowledge += new_knowledge
-
-            print(f"mines: {self.mines}")
-        #     # print(f"safes: {self.safes}")
-=======
-        raise NotImplementedError
->>>>>>> fe6e1b5a4e1d84b518f0d70a83aaa9f89db2aaa0
+                # if s1 is a subset of s2 or vice versa
+                if s1.cells.issubset(s2.cells):
+                    new_cells = s2.cells - s1.cells
+                    new_count = s2.count - s1.count
+                    self.knowledge.append(Sentence(cells = new_cells, count = new_count))
+                    self.knowledge.append(Sentence(cells = s1.cells, count = s1.count - new_count))
+                    flag = True
+                elif s2.cells.issubset(s1.cells):
+                    new_cells = s1.cells - s2.cells
+                    new_count = s1.count - s2.count
+                    self.knowledge.append(Sentence(cells = new_cells, count = new_count))
+                    self.knowledge.append(Sentence(cells = s2.cells, count = s2.count))
+                    flag = True
 
     def make_safe_move(self):
         """
@@ -360,7 +292,6 @@ class MinesweeperAI():
         This function may use the knowledge in self.mines, self.safes
         and self.moves_made, but should not modify any of those values.
         """
-<<<<<<< HEAD
         # Moves are all safes excludng made_moves
         moves = self.safes - self.moves_made
 
@@ -370,9 +301,6 @@ class MinesweeperAI():
         except IndexError:
             return None
 
-=======
-        raise NotImplementedError
->>>>>>> fe6e1b5a4e1d84b518f0d70a83aaa9f89db2aaa0
 
     def make_random_move(self):
         """
@@ -381,7 +309,6 @@ class MinesweeperAI():
             1) have not already been chosen, and
             2) are not known to be mines
         """
-<<<<<<< HEAD
         # Init cells repersenting the entrie board
         cells = set()
         for i in range(self.height):
@@ -400,41 +327,46 @@ class MinesweeperAI():
 
     def prune(self):
         """
-        Remove known mine or safe cells
+        Remove known mine or safe cells to trimming size of KB
         """
-        
-        restore_knowledge = []
 
-        while len(self.knowledge):
-            sentence = self.knowledge.pop(0)
+        flag = True
+        while flag:
+            flag = False
+            try:
+                sentence = self.knowledge.pop(0)
+            except IndexError:
+                break
 
             # Mark safe cells
-            if sentence.known_safes():
-                safe_cells = sentence.known_safes()
+            safe_cells = sentence.known_safes()
+            mine_cells = sentence.known_mines()
+
+            if safe_cells:
+                flag = True
                 for cell in safe_cells:
                     self.mark_safe(cell)
+                    continue
             # Make mine cells
-            elif sentence.known_mines():
-                mine_cells = sentence.known_mines()
+            elif mine_cells:
+                flag = True
                 for cell in mine_cells:
                     self.mark_mine(cell)
+                    continue
             else:
-                restore_knowledge.append(sentence)
+                self.knowledge.append(sentence)
 
-        # Update KB by removing known mine or safe cells, leaving only the uncertain cells
-        self.knowledge += restore_knowledge
 
-    def get_subset():
+    def get_subset(self):
         """
         Generate subsets of KB to compare each pair of sentences
+        return a list of tuples containing two sentences
         """
         subset = []
         for i in range(len(self.knowledge)):
             for j in range(1, len(self.knowledge)):
-                sebset.append((self.knowledge[i], self.knowledge[j]))
+                subset.append((self.knowledge[i], self.knowledge[j]))
+        self.knowledge.clear()
         return subset
 
     
-=======
-        raise NotImplementedError
->>>>>>> fe6e1b5a4e1d84b518f0d70a83aaa9f89db2aaa0
