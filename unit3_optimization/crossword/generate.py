@@ -1,4 +1,5 @@
 import sys
+import itertools
 
 from crossword import *
 
@@ -99,10 +100,23 @@ class CrosswordCreator():
         (Remove any values that are inconsistent with a variable's unary
          constraints; in this case, the length of the word.)
         """
+        # init a new domains
+        new_domains = {}
+
+        # loop over domains
         for var, words in self.domains.items():
+            # init value set
+            values = set()
+
+            # only add word length == variable length into values
             for word in words:
-                if len(word) != var.length:
-                    self.domains[var].remove(word)
+                if len(word) == var.length:
+                    values.add(word)
+
+            # update new_domains
+            new_domains[var] = values
+        # copy new domains over 
+        self.domains = new_domains.copy()
         
     def revise(self, x, y):
         """
@@ -116,12 +130,41 @@ class CrosswordCreator():
         # init revised to False
         revised = False
 
-        for wordx in self.domains[x].values():
-            for wordy in self.domains[y].values():
-                result = self.corssword.overlaps.get([wordx, wordy], False)
-                if result:
-                    self.domains[x].remove(wordx)
-                    revised = True
+        # init empty set as new x domain
+        remove_words = set()
+
+        # loop over words in x domain
+        for wordx in self.domains[x]:
+            
+            # get all wordx, wordy overlap result, true = at least 1 overlap
+            results = []
+            for wordy in self.domains[y]:
+                # has overlap
+                result = self.crossword.overlaps[wordx, wordy]
+                if result == None:
+                    results.append(False)
+                else:
+                    results.append(True)
+
+            # no overlap: add word for removal, update revised
+            if not any(results):
+                remove_words.add(wordx)
+                revised = True
+        
+        # there are words to be removed
+        if not remove_words:
+            for word in remove_words:
+                self.domains[x].remove(word)
+        
+        return revised
+
+        
+
+                
+
+
+        self.domains[x] = x_values
+
         return revised
 
     def ac3(self, arcs=None):
@@ -133,21 +176,61 @@ class CrosswordCreator():
         Return True if arc consistency is enforced and no domains are empty;
         return False if one or more domains end up empty.
         """
-        raise NotImplementedError
+        # if arcs is None: use permutations of 2 variables from all possible
+        if arcs == None:
+            arcs = list(itertools.permutations(self.crossword.variables, 2))
+
+        while arcs:
+            x, y = arcs.pop(0)
+            if self.revise(x, y):
+                # revised, if x domain is empty, i.e. no solution for x
+                if not len(self.domains[x]):
+                    return False
+                
+                varz = self.crossword.neighbors(x) - y
+                for var in varz:
+                    arcs.append((var, x))
+        return True
+
 
     def assignment_complete(self, assignment):
         """
         Return True if `assignment` is complete (i.e., assigns a value to each
         crossword variable); return False otherwise.
         """
-        raise NotImplementedError
+        # if one of assignmengt value is empty, assignmment is then not completed
+        return all([len(string) for string in assignment.values()])
+
 
     def consistent(self, assignment):
         """
         Return True if `assignment` is consistent (i.e., words fit in crossword
         puzzle without conflicting characters); return False otherwise.
         """
-        raise NotImplementedError
+        distinctions = set()
+        for x, string in assignment.items():
+
+            # check the length of the word
+            if x.length != len(string):
+                return False
+
+            # check dictiction
+            if string in distinctions:
+                return False
+            distinctions.add(string)
+
+            # check conflicts
+            varz = self.crossword.neighbors(x)
+            for v in varz:
+                if v in assignment:
+                    (i, j) = self.crossword.overlaps(x, v)
+                    try:
+                        string[i] != assignment[v][j]
+                        return False
+                    except IndexError:
+                        pass
+        return True
+
 
     def order_domain_values(self, var, assignment):
         """
@@ -156,7 +239,28 @@ class CrosswordCreator():
         The first value in the list, for example, should be the one
         that rules out the fewest values among the neighbors of `var`.
         """
-        raise NotImplementedError
+        # unordered
+        unordered_domain_values = []
+
+        # get number of eliminations
+        for x in self.domains[var]:
+            # init number of ruled out count
+            num_out= 0
+            # if x is assigned to already: pass
+            if x in assignment:
+                pass
+            
+            for neighbor in self.crossword.neighbors(var):
+                # number of rule out counter + 1 if the choosen x is also be one of the neighbor's domain
+                if x in self.domains[neighbor]:
+                    num_out += 1
+            # append dictionary
+            unordered_domain_values.append((num_out, x))
+            
+        # sort in ascending order
+        ordered_domain_values = sorted(unordered_domain_values, key = lambda i : i[0])
+        return [i[1] for i in ordered_domain_values]
+
 
     def select_unassigned_variable(self, assignment):
         """
@@ -166,7 +270,20 @@ class CrosswordCreator():
         degree. If there is a tie, any of the tied variables are acceptable
         return values.
         """
-        raise NotImplementedError
+        # get all unassigned variables
+        unassigned_variables = self.crossword.variables - set(assignment.keys())
+
+        # get remaining domain size for unassigned_variables, and put them into a list
+        unassigned = []
+        for var in unassigned_variables:
+            unassigned.append((len(self.domains[var]), var))
+        
+        # sort unordered_unassigned variables in ascending order
+        unassigned.sort(key=lambda i: i[0])
+        
+        # return the variable with minimum remaining value, i.e. the first in the list
+        return unassigned[0][1]
+            
 
     def backtrack(self, assignment):
         """
@@ -177,7 +294,24 @@ class CrosswordCreator():
 
         If no assignment is possible, return None.
         """
-        raise NotImplementedError
+        # successfully created a crossword 
+        if self.assignment_complete(assignment):
+            return assignment
+        
+        # take an unassigned variable
+        unassigned = self.select_unassigned_variable(assignment)
+
+        # backtracking
+        for value in self.order_domain_values(unassigned, assignment):
+            # add unassignment-value in assignment
+            assignment[unassigned] = value
+            # check assignment is still consistent
+            if self.consistent(assignment):
+                result = self.backtrack(assignment)
+                if result:
+                    return result
+            del assignment[unassigned]
+        return False
 
 
 def main():
