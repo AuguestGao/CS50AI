@@ -101,7 +101,7 @@ class NimAI():
         Return the Q-value for the state `state` and the action `action`.
         If no Q-value exists yet in `self.q`, return 0.
         """
-        raise NotImplementedError
+        return self.q.get((tuple(state), action), 0)
 
     def update_q_value(self, state, action, old_q, reward, future_rewards):
         """
@@ -118,7 +118,8 @@ class NimAI():
         `alpha` is the learning rate, and `new value estimate`
         is the sum of the current reward and estimated future rewards.
         """
-        raise NotImplementedError
+        self.q[(tuple(state), action)] = old_q + self.alpha * \
+            ((reward + future_rewards) - old_q)
 
     def best_future_reward(self, state):
         """
@@ -130,7 +131,14 @@ class NimAI():
         Q-value in `self.q`. If there are no available actions in
         `state`, return 0.
         """
-        raise NotImplementedError
+        # get all qs if state matches and action is not None
+        qs = [self.q[pair]
+              for pair in self.q.keys() if state == pair[0] and not pair[1]]
+
+        # qs is not empty
+        if qs:
+            return max(qs)
+        return 0
 
     def choose_action(self, state, epsilon=True):
         """
@@ -147,7 +155,25 @@ class NimAI():
         If multiple actions have the same Q-value, any of those
         options is an acceptable return value.
         """
-        raise NotImplementedError
+        actions = []
+        for pair in self.q.keys():
+            if tuple(state) == pair[0]:
+                q = self.q[pair] if self.q[pair] else 0
+                actions.append((q, pair[1]))
+
+        # no record action
+        if not actions:
+            return random.choice(list(Nim.available_actions(state)))
+
+        if epsilon:
+            # random selection
+            if random.random() < self.epsilon:
+                return random.choice(actions)[1]
+
+            # greedy
+            # sort according to q value in decending order
+            actions.sort(key=lambda x: x[0], reverse=True)
+            return actions[0][1]
 
 
 def train(n):
