@@ -152,12 +152,14 @@ def top_sentences(query, sentences, idfs, n):
     # extract all scores, and remember all ties
     all_scores = [score for sentence, score in score_results]
     counter = Counter(all_scores)
-    tie_scores = [score for score in counter if counter[score] > 1]
+    tie_scores = [score for score, num in counter.items() if num > 1]
 
     # order top_sentence due to score, if there is a tie, order by tf
     top_sentences = []
 
-    for sentence, score in score_results:
+    while score_results:
+
+        sentence, score = score_results.pop(0)
 
         if sentence in top_sentences:
             continue
@@ -166,7 +168,9 @@ def top_sentences(query, sentences, idfs, n):
             top_sentences.append(sentence)
             continue
         else:
-            tie_sentences = [sentence for sent,
+            tie_sentences=[]
+            tie_sentences.append(sentence)
+            tie_sentences += [sent for sent,
                              sc in score_results if sc == score]
             sorted_sentences = sort_tie(tie_sentences, sentences, score, query)
             top_sentences += sorted_sentences
