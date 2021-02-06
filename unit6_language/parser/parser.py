@@ -18,7 +18,7 @@ V -> "smiled" | "tell" | "were"
 NONTERMINALS = """
 S -> NP VP | NP VP Conj NP VP | NP VP Conj VP
 NP -> N | Det N | Det AP N | NP PP | N N | AP N
-VP -> V | V NP | V PP | VP Adv | Adv VP 
+VP -> V | V NP | V PP | VP Adv | Adv VP
 PP -> P NP
 AP -> Adj | Adj AP
 """
@@ -70,7 +70,7 @@ def preprocess(sentence):
     # tokenization
     tokens = nltk.word_tokenize(sentence)
     words = [token.lower()
-             for token in tokens if re.findall(r"[a-zA-Z]+", token)]
+             for token in tokens if re.match(r"[a-zA-Z]+", token)]
     print(sentence)
     print(f"{type(words)}, {nltk.pos_tag(words)}")
     return words
